@@ -1,0 +1,17 @@
+import { Chat01Icon, ClipboardIcon, Home01Icon, PlusSignIcon, ReceiptIcon, Settings01Icon, Wallet01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { PropsWithChildren } from "react";
+import type { View } from "./navigation";
+import { viewLabels } from "./navigation";
+
+const items = [
+  ["home", Home01Icon],
+  ["transactions", ReceiptIcon],
+  ["enrichment", ClipboardIcon],
+  ["chat", Chat01Icon],
+  ["settings", Settings01Icon],
+] as const;
+
+export function AppShell({ children, view, pendingCount, onView, onCapture }: PropsWithChildren<{ view: View; pendingCount: number; onView: (view: View) => void; onCapture: () => void }>) {
+  return <div className="min-h-[100dvh] bg-background"><div className="flex min-h-[100dvh] flex-col lg:flex-row"><aside className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface lg:sticky lg:top-0 lg:h-[100dvh] lg:w-64 lg:shrink-0 lg:border-t-0 lg:border-s"><nav className="flex justify-around px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 lg:h-full lg:flex-col lg:justify-start lg:p-4"><div className="hidden items-center gap-3 px-3 pb-8 lg:flex"><span className="grid size-10 place-items-center rounded-xl bg-primary text-white"><HugeiconsIcon icon={Wallet01Icon} size={22} strokeWidth={1.5} /></span><strong className="text-xl">مانای</strong></div>{items.map(([id, icon]) => <button aria-label={viewLabels[id]} className={`relative grid min-h-12 flex-1 place-items-center rounded-lg lg:mb-1 lg:flex lg:flex-none lg:justify-start lg:gap-3 lg:px-3 ${view === id ? "bg-primary-soft text-primary" : "text-muted-foreground hover:bg-surface-muted"}`} key={id} onClick={() => onView(id)}><HugeiconsIcon icon={icon} size={21} strokeWidth={1.5} /><span className="hidden lg:inline">{viewLabels[id]}</span>{id === "enrichment" && pendingCount > 0 && <span className="absolute end-1 top-0.5 grid min-w-5 place-items-center rounded-full bg-expense px-1 text-[10px] text-white lg:static">{pendingCount}</span>}</button>)}<button aria-label="ثبت تراکنش" className="mt-auto hidden min-h-12 items-center justify-center gap-2 rounded-lg bg-primary text-white lg:flex" onClick={onCapture}><HugeiconsIcon icon={PlusSignIcon} size={20} />ثبت تراکنش</button></nav></aside><main className="min-w-0 flex-1 pb-24 lg:pb-0"><header className="sticky top-0 z-20 flex h-16 items-center border-b border-border bg-background/95 px-4 backdrop-blur lg:h-20 lg:px-10"><div><p className="text-xs text-muted-foreground">فضای مالی شخصی</p><h1 className="font-bold lg:text-lg">{viewLabels[view]}</h1></div></header><div className="mx-auto w-full max-w-6xl p-4 lg:p-10">{children}</div></main><button aria-label="ثبت تراکنش" className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] end-4 z-30 grid size-14 place-items-center rounded-full bg-primary text-white shadow-lg lg:hidden" onClick={onCapture}><HugeiconsIcon icon={PlusSignIcon} size={25} /></button></div></div>;
+}

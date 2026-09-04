@@ -1,0 +1,18 @@
+import type { UIMessage } from "ai";
+import { CHAT_HISTORY_LIMIT } from "../../../shared/contracts/ai";
+
+export function mergeChatMessages(current: UIMessage[], incoming: UIMessage[]) {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  for (const message of incoming) byId.set(message.id, message);
+  return [...byId.values()];
+}
+
+export function createChatHistoryStore() {
+  let history: UIMessage[] = [];
+  return {
+    list: () => history,
+    save: (messages: UIMessage[]) => {
+      history = mergeChatMessages(history, messages).slice(-CHAT_HISTORY_LIMIT);
+    },
+  };
+}

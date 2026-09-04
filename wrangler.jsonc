@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "monai",
+  "main": "src/index.ts",
+  "keep_vars": true,
+  "compatibility_date": "2026-08-30",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "monai-db",
+      "database_id": "8feeea9e-aa65-4805-ab70-32a728b30ca7",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

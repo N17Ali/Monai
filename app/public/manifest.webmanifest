@@ -1,0 +1,11 @@
+{
+  "name": "مانای",
+  "short_name": "مانای",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8fa",
+  "theme_color": "#f7f8fa",
+  "icons": []
+}

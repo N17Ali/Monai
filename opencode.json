@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "bun x",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": true
+    },
+    "hugeicons": {
+      "type": "local",
+      "command": [
+        "bun x",
+        "-y",
+        "@hugeicons/mcp-server"
+      ]
+    }
+  }
+}

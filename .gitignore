@@ -1,0 +1,30 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
+*.log
+.playwright-mcp/
+
+# OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor junk
+.vscode/
+.idea/
+*.swp
+
+# Build/cache artifacts
+*.tsbuildinfo
+.vite/
+coverage/
+
+# Local agent/graph artifacts
+.codebase-memory/
+.opencode/
