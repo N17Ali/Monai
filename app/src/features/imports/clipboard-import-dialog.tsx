@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { clipboardImportSchema } from "@shared/contracts/transaction";
 import { importResponseSchema } from "@shared/contracts/api";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/shared/api/client";
@@ -43,5 +43,5 @@ export function ClipboardImportForm({ active, onDone }: { active: boolean; onDon
 }
 
 export function ClipboardImportDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (value: boolean) => void; onCreated: () => void }) {
-  return <Dialog description="پیام به‌صورت پیش‌نویس ذخیره می‌شود و قبل از گزارش‌ها باید تأیید شود." onOpenChange={onOpenChange} open={open} title="ورود پیام بانکی"><ClipboardImportForm active={open} onDone={() => { onOpenChange(false); onCreated(); }} /></Dialog>;
+  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>ورود پیام بانکی</DialogTitle><DialogDescription>پیام به‌صورت پیش‌نویس ذخیره می‌شود و قبل از گزارش‌ها باید تأیید شود.</DialogDescription></DialogHeader><ClipboardImportForm active={open} onDone={() => { onOpenChange(false); onCreated(); }} /></DialogContent></Dialog>;
 }

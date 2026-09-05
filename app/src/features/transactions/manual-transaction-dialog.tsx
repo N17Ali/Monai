@@ -8,7 +8,7 @@ import { manualTransactionSchema, type ManualTransactionInput, kindLabels } from
 import { jalaliToIso, nowJalaliTehran } from "@shared/parsing/jalali";
 import { api } from "@/shared/api/client";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { transactionKeys } from "./api";
@@ -39,5 +39,5 @@ export function ManualForm({ onDone }: { onDone: () => void }) {
 }
 
 export function ManualTransactionDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (value: boolean) => void }) {
-  return <Dialog onOpenChange={onOpenChange} open={open} title="ثبت دستی تراکنش"><ManualForm onDone={() => onOpenChange(false)} /></Dialog>;
+  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>ثبت دستی تراکنش</DialogTitle></DialogHeader><ManualForm onDone={() => onOpenChange(false)} /></DialogContent></Dialog>;
 }
