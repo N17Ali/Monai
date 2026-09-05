@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/shared/api/client";
 import { enrichmentKeys } from "@/features/enrichment/api";
 
-export function ClipboardImportDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (value: boolean) => void; onCreated: () => void }) {
+export function ClipboardImportForm({ active, onDone }: { active: boolean; onDone: () => void }) {
   const queryClient = useQueryClient();
   const form = useForm({ resolver: zodResolver(clipboardImportSchema), defaultValues: { text: "" } });
   const mutation = useMutation({
@@ -24,8 +24,7 @@ export function ClipboardImportDialog({ open, onOpenChange, onCreated }: { open:
         await queryClient.invalidateQueries({ queryKey: enrichmentKeys.all });
         toast.success("تراکنش برای تکمیل اطلاعات آماده شد");
         form.reset();
-        onOpenChange(false);
-        onCreated();
+        onDone();
       }
     },
     onError: () => toast.error("ثبت تراکنش انجام نشد"),
@@ -37,8 +36,12 @@ export function ClipboardImportDialog({ open, onOpenChange, onCreated }: { open:
   }
 
   useEffect(() => {
-    if (open && !form.getValues("text")) void readClipboard();
-  }, [open]);
+    if (active && !form.getValues("text")) void readClipboard();
+  }, [active]);
 
-  return <Dialog description="پیام به‌صورت پیش‌نویس ذخیره می‌شود و قبل از گزارش‌ها باید تأیید شود." onOpenChange={onOpenChange} open={open} title="ورود پیام بانکی"><form className="mt-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}><Controller name="text" control={form.control} render={({ field, fieldState }) => <label className="block text-sm font-medium">متن پیام<Textarea className="mt-2 min-h-40" placeholder="پیام بانکی را اینجا جای‌گذاری کنید" {...field} />{fieldState.error && <span className="mt-2 block text-sm text-expense">{fieldState.error.message}</span>}</label>} /><Button aria-busy={mutation.isPending || undefined} disabled={mutation.isPending} className="mt-4 w-full" type="submit">{mutation.isPending && <Spinner />}تبدیل به تراکنش</Button></form></Dialog>;
+  return <form className="mt-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}><Controller name="text" control={form.control} render={({ field, fieldState }) => <label className="block text-sm font-medium">متن پیام<Textarea className="mt-2 min-h-40" placeholder="پیام بانکی را اینجا جای‌گذاری کنید" {...field} />{fieldState.error && <span className="mt-2 block text-sm text-expense">{fieldState.error.message}</span>}</label>} /><Button aria-busy={mutation.isPending || undefined} disabled={mutation.isPending} className="mt-4 w-full" type="submit">{mutation.isPending && <Spinner />}تبدیل به تراکنش</Button></form>;
+}
+
+export function ClipboardImportDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (value: boolean) => void; onCreated: () => void }) {
+  return <Dialog description="پیام به‌صورت پیش‌نویس ذخیره می‌شود و قبل از گزارش‌ها باید تأیید شود." onOpenChange={onOpenChange} open={open} title="ورود پیام بانکی"><ClipboardImportForm active={open} onDone={() => { onOpenChange(false); onCreated(); }} /></Dialog>;
 }

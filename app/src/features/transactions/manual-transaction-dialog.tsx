@@ -26,7 +26,7 @@ const jalaliEntrySchema = z.object({
 
 type JalaliEntryInput = z.infer<typeof jalaliEntrySchema>;
 
-function ManualForm({ onDone }: { onDone: () => void }) {
+export function ManualForm({ onDone }: { onDone: () => void }) {
   const queryClient = useQueryClient();
   const now = nowJalaliTehran();
   const form = useForm<JalaliEntryInput>({ resolver: zodResolver(jalaliEntrySchema), defaultValues: { kind: "expense", amountToman: 0, occurredAt: { year: now.jy, month: now.jm, day: now.jd, hour: now.hour, minute: now.minute }, note: "" } });

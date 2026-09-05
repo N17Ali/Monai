@@ -17,6 +17,7 @@
   "dependencies": {
     "@ai-sdk/google": "^4.0.60",
     "@ai-sdk/react": "^4.0.88",
+    "@base-ui/react": "^1.8.0",
     "@fontsource/vazirmatn": "latest",
     "@hookform/resolvers": "^5.9.1",
     "@hugeicons/core-free-icons": "latest",
@@ -51,6 +52,7 @@
     "bun-types": "latest",
     "drizzle-kit": "^0.31.10",
     "jsdom": "^30.0.1",
+    "shadcn": "^4.21.0",
     "typescript": "latest",
     "vite": "latest",
     "vitest": "^4.1.11",

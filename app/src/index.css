@@ -92,12 +92,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-4xl: calc(var(--radius) + 20px);
 }
 
 * { box-sizing: border-box; }
 html { touch-action: pan-x pan-y; }
 html, body, #root { min-height: 100%; }
 body {
+  position: relative;
   margin: 0;
   background: var(--background);
   color: var(--foreground);
