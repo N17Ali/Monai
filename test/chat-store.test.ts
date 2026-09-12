@@ -44,11 +44,11 @@ describe("chat history store", () => {
 
   it("keeps only the most recent messages once the history passes the window", () => {
     const store = createChatHistoryStore();
-    const many = Array.from({ length: 30 }, (_, index) => message(`m${index}`, index % 2 === 0 ? "user" : "assistant"));
+    const many = Array.from({ length: 60 }, (_, index) => message(`m${index}`, index % 2 === 0 ? "user" : "assistant"));
     store.save(many);
     const listed = store.list();
-    expect(listed).toHaveLength(20);
+    expect(listed).toHaveLength(50);
     expect(listed[0]?.id).toBe("m10");
-    expect(listed.at(-1)?.id).toBe("m29");
+    expect(listed.at(-1)?.id).toBe("m59");
   });
 });

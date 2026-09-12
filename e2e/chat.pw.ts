@@ -73,7 +73,9 @@ test.describe("chat page", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          messages: Array.from({ length: 25 }, (_, index) => [
+          // 24 pairs (48 messages) stays below the 50-message conversation cap,
+          // so the composer remains enabled for the send below.
+          messages: Array.from({ length: 24 }, (_, index) => [
             { id: `u${index}`, role: "user", parts: [{ type: "text", text: `سؤال ${index}` }] },
             { id: `a${index}`, role: "assistant", parts: [{ type: "text", text: `پاسخ ${index}`, state: "done" }] },
           ]).flat(),
@@ -86,7 +88,7 @@ test.describe("chat page", () => {
     });
     await page.goto("/?view=chat");
     const log = page.locator('[role="log"]');
-    await expect(log.locator("text=پاسخ 24")).toBeVisible();
+    await expect(log.locator("text=پاسخ 23")).toBeVisible();
     expect(await log.evaluate((element) => element.scrollHeight - element.scrollTop - element.clientHeight)).toBe(0);
     await page.getByPlaceholder("مثلاً این ماه چقدر خرج کردم؟").fill("سلام");
     await page.getByPlaceholder("مثلاً این ماه چقدر خرج کردم؟").press("Enter");
@@ -157,8 +159,10 @@ test.describe("chat history layout", () => {
   });
 
   test("eases to the end when the user sends a message while scrolled up", async ({ page }) => {
+    // 24 pairs (48 messages) stays below the 50-message conversation cap,
+    // so the composer remains enabled for the send below.
     await page.route("**/api/chat/messages", (route) =>
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(longHistory(30)) }),
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(longHistory(24)) }),
     );
     await page.route("**/api/chat", async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 600));
@@ -166,7 +170,7 @@ test.describe("chat history layout", () => {
     });
     await page.goto("/?view=chat");
     const log = page.locator('[role="log"]');
-    await expect(page.getByText("پاسخ 29")).toBeInViewport();
+    await expect(page.getByText("پاسخ 23")).toBeInViewport();
     await log.evaluate((element) => {
       element.scrollTop = 0;
     });

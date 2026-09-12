@@ -38,6 +38,7 @@ export const chatMessages = sqliteTable(
   {
     id: text("id").notNull(),
     userId: text("user_id").notNull(),
+    conversationId: text("conversation_id").notNull().default("conversation-1"),
     role: text("role").notNull(),
     parts: text("parts").notNull(),
     createdAt: text("created_at").notNull(),
@@ -49,3 +50,19 @@ export const chatMessages = sqliteTable(
 );
 
 export type ChatMessageRow = typeof chatMessages.$inferSelect;
+
+export const conversations = sqliteTable(
+  "conversations",
+  {
+    id: text("id").notNull(),
+    userId: text("user_id").notNull(),
+    number: integer("number").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.id] }),
+    index("idx_conversations_user_number").on(table.userId, table.number),
+  ],
+);
+
+export type ConversationRow = typeof conversations.$inferSelect;

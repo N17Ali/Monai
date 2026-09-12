@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizeBalances, withLegacyBalances } from "../src/features/chat/balance-summary";
+import { summarizeBalances, withLegacyBalances } from "../shared/parsing/balance";
 import { buildSystemPrompt } from "../src/features/chat/system-prompt";
 import type { Transaction } from "../shared/contracts/transaction";
 

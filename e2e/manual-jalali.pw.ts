@@ -6,7 +6,7 @@ test.describe("manual transaction jalali entry", () => {
   test("picks a Jalali date and time and stores the correct Tehran instant", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "ثبت تراکنش" }).first().click();
-    await page.getByRole("button", { name: "ثبت دستی تراکنش" }).click();
+    await page.getByRole("button", { name: "ثبت", exact: true }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByPlaceholder("مثلاً ۴۵۰۰۰").fill("1400000");
 

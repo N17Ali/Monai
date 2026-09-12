@@ -6,12 +6,14 @@ import { clipboardImportSchema, enrichmentUpdateSchema, manualTransactionSchema,
 import { containsSensitiveCode, parseSms } from "../shared/parsing/sms";
 import { createChatModel } from "../src/features/chat/model";
 import { createChatHistoryStore } from "../src/features/chat/chat-store";
-import { summarizeBalances, withLegacyBalances } from "../src/features/chat/balance-summary";
+import { createConversationStore } from "../src/features/chat/conversation-store";
+import { summarizeBalances, withLegacyBalances } from "../shared/parsing/balance";
 import { buildSystemPrompt } from "../src/features/chat/system-prompt";
 
 const drafts: Transaction[] = [];
 const verified: Transaction[] = [];
 const chatStore = createChatHistoryStore();
+const conversationStore = createConversationStore();
 
 async function readBody(request: IncomingMessage) {
   let value = "";
@@ -48,7 +50,25 @@ export function devApi(options: { aiApiKey?: string }): Plugin {
         try {
           if (path === "/api/health") return send(response, 200, { ok: true });
           if (path === "/api/enrichment" && request.method === "GET") return send(response, 200, { drafts, count: drafts.length });
-          if (path === "/api/transactions" && request.method === "GET") return send(response, 200, { transactions: verified });
+          if (path === "/api/transactions" && request.method === "GET") {
+            const params = new URL(request.url, "http://localhost").searchParams;
+            const sorted = [...verified].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || (b.id < a.id ? -1 : b.id > a.id ? 1 : 0));
+            const cursorOf = (item: Transaction) => `${item.occurredAt}|${item.id}`;
+            const limitParam = params.get("limit");
+            if (limitParam == null) return send(response, 200, { transactions: sorted, nextCursor: null });
+            const limit = Number(limitParam);
+            if (!Number.isInteger(limit) || limit < 1 || limit > 100) return send(response, 400, { error: "اندازه صفحه معتبر نیست" });
+            const cursor = params.get("cursor");
+            let start = 0;
+            if (cursor != null) {
+              const index = sorted.findIndex((item) => cursorOf(item) === cursor);
+              if (index === -1) return send(response, 400, { error: "پارامتر صفحه‌بندی معتبر نیست" });
+              start = index + 1;
+            }
+            const page = sorted.slice(start, start + limit);
+            const nextCursor = page.length === limit && page.length > 0 ? cursorOf(page[page.length - 1]) : null;
+            return send(response, 200, { transactions: page, nextCursor });
+          }
           if (path === "/api/imports/clipboard" && request.method === "POST") {
             const { text } = clipboardImportSchema.parse(await readBody(request));
             if (containsSensitiveCode(text)) return send(response, 200, { status: "sensitive_blocked" });
@@ -69,21 +89,39 @@ export function devApi(options: { aiApiKey?: string }): Plugin {
             const input = enrichmentUpdateSchema.parse(await readBody(request));
             const draft = drafts.find((item) => item.id === match[1]);
             if (!draft) return send(response, 404, { error: "پیش‌نویس پیدا نشد" });
-            verified.unshift({ ...draft, status: "verified", kind: input.kind, amountRial: Math.round(input.amountToman * 10), userNote: input.note || null });
+            verified.unshift({ ...draft, status: "verified", kind: input.kind, amountRial: Math.round(input.amountToman * 10), userNote: input.note || null, occurredAt: input.occurredAt ?? draft.occurredAt });
             drafts.splice(drafts.indexOf(draft), 1);
             return send(response, 200, { status: "verified" });
           }
-          if (path === "/api/chat/messages" && request.method === "GET") return send(response, 200, { messages: chatStore.list() });
+          if (match && request.method === "DELETE") {
+            const draft = drafts.find((item) => item.id === match[1]);
+            if (!draft) return send(response, 404, { error: "پیش‌نویس پیدا نشد" });
+            draft.status = "rejected";
+            drafts.splice(drafts.indexOf(draft), 1);
+            return send(response, 200, { status: "rejected" });
+          }
+          if (path === "/api/chat/messages" && request.method === "GET") {
+            const conversationId = new URL(request.url, "http://localhost").searchParams.get("conversationId") ?? "conversation-1";
+            return send(response, 200, { messages: chatStore.list(conversationId) });
+          }
+          if (path === "/api/chat/conversations" && request.method === "GET") return send(response, 200, { conversations: conversationStore.list() });
+          if (path === "/api/chat/conversations" && request.method === "POST") return send(response, 201, { conversation: conversationStore.create() });
+          const conversationMatch = path.match(/^\/api\/chat\/conversations\/([^/]+)$/);
+          if (conversationMatch && request.method === "DELETE") {
+            conversationStore.remove(conversationMatch[1]);
+            chatStore.remove(conversationMatch[1]);
+            return send(response, 200, { status: "removed" });
+          }
           if (path === "/api/chat" && request.method === "POST") {
             if (!options.aiApiKey) return send(response, 503, { error: "سرویس هوش مصنوعی پیکربندی نشده است" });
-            const { messages } = await readBody(request) as { messages: UIMessage[] };
+            const { conversationId = "conversation-1", messages } = await readBody(request) as { conversationId?: string; messages: UIMessage[] };
             const balances = summarizeBalances(withLegacyBalances(verified));
             const result = streamText({ model: createChatModel(options.aiApiKey), system: buildSystemPrompt(verified, balances), messages: await convertToModelMessages(messages) });
             return pipeWebResponse(result.toUIMessageStreamResponse({
               generateMessageId: generateId,
               originalMessages: messages,
               onError: () => AI_PUBLIC_ERROR,
-              onEnd: ({ messages: finalMessages }) => chatStore.save(finalMessages),
+             onEnd: ({ messages: finalMessages }) => chatStore.save(finalMessages, conversationId),
             }), response);
           }
           return send(response, 404, { error: "مسیر پیدا نشد" });

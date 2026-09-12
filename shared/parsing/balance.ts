@@ -1,5 +1,5 @@
-import type { Transaction } from "../../../shared/contracts/transaction";
-import { parseSms } from "../../../shared/parsing/sms";
+import type { Transaction } from "../contracts/transaction";
+import { parseSms } from "./sms";
 
 const bankLabels: Record<string, string> = { blu: "بلو", tejarat: "بانک تجارت", mellat: "بانک ملت", resalat: "بانک رسالت" };
 
@@ -8,6 +8,13 @@ type BalanceSource = Pick<Transaction, "accountId" | "bankId" | "balanceAfterRia
 type BalanceTransaction = BalanceSource & Pick<Transaction, "originalMessage">;
 
 export type AccountBalance = { account: string; balanceRial: number; asOf: string };
+
+// Single source of truth for account identity across the chart and the chat
+// balance summary: a transaction without accountId or bankId belongs to ONE
+// shared "unknown" account — never to a per-transaction phantom account.
+export function accountKey(item: BalanceSource) {
+  return item.accountId ?? item.bankId ?? "unknown";
+}
 
 function accountLabel(item: BalanceSource) {
   if (item.accountId) {
@@ -31,7 +38,7 @@ export function summarizeBalances(transactions: BalanceSource[]) {
   const latest = new Map<string, AccountBalance>();
   for (const item of transactions) {
     if (item.balanceAfterRial == null) continue;
-    const key = item.accountId ?? item.bankId ?? "unknown";
+    const key = accountKey(item);
     const existing = latest.get(key);
     if (!existing || Date.parse(item.occurredAt) > Date.parse(existing.asOf)) {
       latest.set(key, { account: accountLabel(item), balanceRial: item.balanceAfterRial, asOf: item.occurredAt });

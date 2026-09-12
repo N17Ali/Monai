@@ -47,6 +47,7 @@ export const enrichmentUpdateSchema = z.object({
   kind: transactionKindSchema.exclude(["unknown"]),
   amountToman: z.number().positive("مبلغ را مشخص کنید"),
   note: z.string().trim().max(300),
+  occurredAt: z.iso.datetime().optional(),
 });
 
 export type Transaction = z.infer<typeof transactionSchema>;

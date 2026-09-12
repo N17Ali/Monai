@@ -12,5 +12,5 @@ export function PromptInputTextarea({ className, ...props }: TextareaHTMLAttribu
 }
 
 export function PromptInputSubmit({ disabled, children = "بپرس" }: { disabled?: boolean; children?: React.ReactNode }) {
-  return <Button disabled={disabled} type="submit">{children}</Button>;
+  return <Button className="min-w-28" disabled={disabled} type="submit">{children}</Button>;
 }

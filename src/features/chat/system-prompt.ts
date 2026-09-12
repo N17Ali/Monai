@@ -1,6 +1,6 @@
 import type { Transaction } from "../../../shared/contracts/transaction";
+import type { AccountBalance } from "../../../shared/parsing/balance";
 import { formatJalaliDateTime } from "../../../shared/parsing/jalali";
-import type { AccountBalance } from "./balance-summary";
 
 export type ChatTransaction = Pick<Transaction, "kind" | "amountRial" | "occurredAt" | "userNote">;
 

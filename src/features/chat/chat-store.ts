@@ -8,11 +8,15 @@ export function mergeChatMessages(current: UIMessage[], incoming: UIMessage[]) {
 }
 
 export function createChatHistoryStore() {
-  let history: UIMessage[] = [];
+  const histories = new Map<string, UIMessage[]>();
   return {
-    list: () => history,
-    save: (messages: UIMessage[]) => {
-      history = mergeChatMessages(history, messages).slice(-CHAT_HISTORY_LIMIT);
+    list: (conversationId = "conversation-1") => histories.get(conversationId) ?? [],
+    save: (messages: UIMessage[], conversationId = "conversation-1") => {
+      const history = histories.get(conversationId) ?? [];
+      histories.set(conversationId, mergeChatMessages(history, messages).slice(-CHAT_HISTORY_LIMIT));
+    },
+    remove: (conversationId = "conversation-1") => {
+      histories.delete(conversationId);
     },
   };
 }

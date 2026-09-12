@@ -3,6 +3,13 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-press: 140ms;
+  --duration-popover: 180ms;
+  --duration-dialog: 220ms;
+  --content-max-width: 1120px;
   --background: #f7f8fa;
   --foreground: #172033;
   --surface: #ffffff;
@@ -108,7 +115,43 @@ body {
 }
 button, input, select, textarea { font: inherit; }
 input, select, textarea { font-size: 16px; }
-.mobile-nav-label { height: 16px; line-height: 16px; white-space: nowrap; }
+.mobile-nav-label { height: 14px; line-height: 14px; white-space: nowrap; font-size: 0.6875rem; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.bg-primary .border-white\/30 {
+  border-color: rgb(255 255 255 / 0.3);
+  background-color: transparent;
+  color: white;
+}
+
+.bg-primary .border-white\/30:hover {
+  background-color: rgb(255 255 255 / 0.1);
+  color: white;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .choice-card:hover { background: var(--surface-muted); }
+  .choice-card-primary:hover { background: var(--primary-soft); border-color: var(--primary-strong); }
+}
+
+/* Chart theming: CSS rules (not SVG presentation attributes) so var() always
+   resolves, in every browser, for both light and dark themes. */
+.balance-flow-chart .recharts-cartesian-axis-tick-value { fill: var(--muted-foreground); }
+.balance-flow-chart .recharts-cartesian-grid line { stroke: var(--border); }
+.balance-flow-chart .recharts-line-curve { stroke: var(--primary); }
+.balance-flow-chart .recharts-reference-line line { stroke: var(--muted-foreground); }
+.balance-flow-chart defs stop { stop-color: var(--primary); }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 ::selection { background: var(--primary-soft); }
