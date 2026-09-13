@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useQueryState } from "nuqs";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/app/app-shell";
 import { viewParser, type View } from "@/app/navigation";
 import { enrichmentQuery } from "@/features/enrichment/api";
 import { EnrichmentView } from "@/features/enrichment/enrichment-view";
-import { CaptureSheet, type CaptureStep } from "@/features/imports/capture-sheet";
+import { useCaptureFlow } from "@/features/imports/capture";
+import { CaptureSheet } from "@/features/imports/capture-sheet";
 import { TransactionsView } from "@/features/transactions/transactions-view";
 import { transactionsQuery } from "@/features/transactions/api";
 import { formatToman } from "@/lib/utils";
@@ -32,14 +33,14 @@ function Settings() {
 
 export default function App() {
   const [view, setView] = useQueryState("view", viewParser);
-  const [capture, setCapture] = useState<CaptureStep | null>(null);
+  const capture = useCaptureFlow(() => void setView("enrichment"));
   const { data } = useQuery(enrichmentQuery);
   const content: Record<View, React.ReactNode> = {
-    home: <Home onCapture={() => setCapture("choose")} onEnrichment={() => void setView("enrichment")} onTransactions={() => void setView("transactions")} />,
-    transactions: <TransactionsView onImport={() => setCapture("clipboard")} onManual={() => setCapture("manual")} />,
+    home: <Home onCapture={capture.open} onEnrichment={() => void setView("enrichment")} onTransactions={() => void setView("transactions")} />,
+    transactions: <TransactionsView onImport={() => capture.choose("clipboard")} onManual={() => capture.choose("manual")} />,
     enrichment: <EnrichmentView />,
     chat: <Suspense fallback={<p className="text-sm text-muted-foreground" role="status">در حال آماده‌سازی گفت‌وگو...</p>}><ChatView /></Suspense>,
     settings: <Settings />,
   };
-  return <AppShell onCapture={() => setCapture("choose")} onView={(value) => void setView(value)} pendingCount={data?.count ?? 0} view={view}>{content[view]}<CaptureSheet capture={capture} onCaptureChange={setCapture} onCreated={() => void setView("enrichment")} /></AppShell>;
+  return <AppShell onCapture={capture.open} onView={(value) => void setView(value)} pendingCount={data?.count ?? 0} view={view}>{content[view]}<CaptureSheet capture={capture.step} onCaptureChange={capture.setStep} onCreated={capture.review} /></AppShell>;
 }

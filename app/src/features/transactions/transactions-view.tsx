@@ -2,15 +2,16 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { ArrowDown01Icon, ArrowUp01Icon, ReceiptIcon, Refresh01Icon, RepeatIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef } from "react";
-import { kindLabels, type Transaction } from "@shared/contracts/transaction";
+import { kindLabels, transactionDirection, type Transaction } from "@shared/contracts/transaction";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatJalali, formatToman } from "@/lib/utils";
 import { transactionsInfiniteQuery } from "./api";
 
 function direction(item: Transaction) {
-  if (["income", "refund", "transfer_in"].includes(item.kind)) return { sign: "+", color: "text-income", icon: ArrowUp01Icon };
-  if (["expense", "fee", "cash_withdrawal"].includes(item.kind)) return { sign: "−", color: "text-expense", icon: ArrowDown01Icon };
+  const flow = transactionDirection(item.kind);
+  if (flow === "in") return { sign: "+", color: "text-income", icon: ArrowUp01Icon };
+  if (flow === "out") return { sign: "−", color: "text-expense", icon: ArrowDown01Icon };
   return { sign: "", color: "text-muted-foreground", icon: RepeatIcon };
 }
 

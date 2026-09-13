@@ -1,36 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { clipboardImportSchema } from "@shared/contracts/transaction";
-import { importResponseSchema } from "@shared/contracts/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
-import { api } from "@/shared/api/client";
-import { enrichmentKeys } from "@/features/enrichment/api";
+import { useClipboardImport } from "./capture";
 
 export function ClipboardImportForm({ active, onDone }: { active: boolean; onDone: (next: "review" | "later") => void }) {
-  const queryClient = useQueryClient();
   const form = useForm({ resolver: zodResolver(clipboardImportSchema), defaultValues: { text: "" } });
   const textRef = useRef<HTMLTextAreaElement>(null);
   const [clipboardMessage, setClipboardMessage] = useState("");
-  const [created, setCreated] = useState(false);
-  const mutation = useMutation({
-    mutationFn: (values: { text: string }) => api<unknown>("/api/imports/clipboard", { method: "POST", body: JSON.stringify(values) }).then(importResponseSchema.parse),
-    onSuccess: async (result) => {
-      if (result.status === "duplicate") return toast.info("این پیام قبلاً وارد شده است");
-      if (result.status === "sensitive_blocked") return toast.error("پیام‌های حاوی رمز ذخیره نمی‌شوند");
-      if (result.status === "draft_created") {
-        await queryClient.invalidateQueries({ queryKey: enrichmentKeys.all });
-        toast.success("تراکنش برای تکمیل اطلاعات آماده شد");
-        setCreated(true);
-      }
-    },
-    onError: () => toast.error("ثبت تراکنش انجام نشد"),
-  });
+  const { mutation, created, reset } = useClipboardImport();
 
   async function readClipboard() {
     try {
@@ -46,7 +28,7 @@ export function ClipboardImportForm({ active, onDone }: { active: boolean; onDon
     if (active && !form.getValues("text")) void readClipboard();
   }, [active]);
 
-  if (created) return <div className="mt-4 space-y-3"><div className="rounded-lg bg-income/10 p-4" role="status"><h3 className="font-semibold">پیش‌نویس آماده بررسی است</h3><p className="mt-1 text-sm text-muted-foreground">تا زمانی که آن را تأیید نکنی، در گزارش‌ها نمایش داده نمی‌شود.</p></div><div className="flex gap-2"><Button className="flex-1" onClick={() => onDone("review")}>بررسی الآن</Button><Button className="flex-1" onClick={() => { setCreated(false); form.reset(); onDone("later"); }} variant="outline">بعداً</Button></div></div>;
+  if (created) return <div className="mt-4 space-y-3"><div className="rounded-lg bg-income/10 p-4" role="status"><h3 className="font-semibold">پیش‌نویس آماده بررسی است</h3><p className="mt-1 text-sm text-muted-foreground">تا زمانی که آن را تأیید نکنی، در گزارش‌ها نمایش داده نمی‌شود.</p></div><div className="flex gap-2"><Button className="flex-1" onClick={() => onDone("review")}>بررسی الآن</Button><Button className="flex-1" onClick={() => { reset(); form.reset(); onDone("later"); }} variant="outline">بعداً</Button></div></div>;
   return <form className="mt-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}><Controller name="text" control={form.control} render={({ field, fieldState }) => <label className="block text-sm font-medium">متن پیام<Textarea {...field} ref={(node) => { textRef.current = node; field.ref(node); }} className="mt-2 min-h-40" placeholder="پیام بانکی را اینجا جای‌گذاری کنید" />{clipboardMessage && <span className="mt-2 block text-sm text-warning" role="status">{clipboardMessage}</span>}{field.value && <span className="mt-2 block text-sm text-income" role="status">پیام از کلیپ‌بورد خوانده شد</span>}{fieldState.error && <span className="mt-2 block text-sm text-expense">{fieldState.error.message}</span>}</label>} /><Button aria-busy={mutation.isPending || undefined} disabled={mutation.isPending} className="mt-4 w-full" type="submit">{mutation.isPending && <Spinner />}ذخیره پیش‌نویس</Button></form>;
 }
 

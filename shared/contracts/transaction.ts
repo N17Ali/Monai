@@ -55,6 +55,29 @@ export type TransactionKind = z.infer<typeof transactionKindSchema>;
 export type ManualTransactionInput = z.infer<typeof manualTransactionSchema>;
 export type EnrichmentUpdateInput = z.infer<typeof enrichmentUpdateSchema>;
 
+// The kinds a user can pick in the manual and enrichment forms. Defined once so
+// both forms and their defaulting rule cannot drift apart.
+export const editableTransactionKinds = ["expense", "income", "transfer_out", "transfer_in"] as const;
+export type EditableTransactionKind = (typeof editableTransactionKinds)[number];
+
+const incomingKinds: readonly TransactionKind[] = ["income", "refund", "transfer_in"];
+const outgoingKinds: readonly TransactionKind[] = ["expense", "fee", "cash_withdrawal"];
+
+export type TransactionDirection = "in" | "out" | "neutral";
+
+// The single sign rule for a financial kind: transfers and unknown kinds are
+// neutral and never count as income or spending. Both the transactions list and
+// the monthly totals read this, so they cannot classify a kind differently.
+export function transactionDirection(kind: TransactionKind): TransactionDirection {
+  if (incomingKinds.includes(kind)) return "in";
+  if (outgoingKinds.includes(kind)) return "out";
+  return "neutral";
+}
+
+export function editableKindOf(kind: TransactionKind): EditableTransactionKind {
+  return (editableTransactionKinds as readonly string[]).includes(kind) ? (kind as EditableTransactionKind) : "expense";
+}
+
 export const kindLabels: Record<TransactionKind, string> = {
   expense: "هزینه",
   income: "درآمد",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "@shared/contracts/transaction";
 import { buildBalanceFlow, formatAxisToman, formatCompactToman, formatExactToman, monthlyTotals } from "@/features/transactions/balance-flow";
-import { summarizeBalances, withLegacyBalances } from "@shared/parsing/balance";
+import { balanceByDay, balanceTimeline, summarizeBalances, withLegacyBalances } from "@shared/parsing/balance";
 
 const transaction = (overrides: Partial<Transaction>): Transaction => ({
   id: crypto.randomUUID(), source: "manual", status: "verified", kind: "expense", amountRial: 100000,
@@ -94,6 +94,18 @@ describe("balance flow", () => {
     const modelTotal = summarizeBalances(withLegacyBalances(input)).totalRial;
     const chartTotal = buildBalanceFlow(input).at(-1)?.cumulativeRial;
     expect(chartTotal).toBe(modelTotal);
+  });
+
+  it("derives the chat summary and the chart timeline from one fold", () => {
+    const input = withLegacyBalances([
+      transaction({ id: "known", accountId: "300421666097", balanceAfterRial: 400000000, occurredAt: "2024-05-24T20:00:00.000Z" }),
+      transaction({ id: "unknown-1", accountId: null, bankId: null, balanceAfterRial: 55881234, occurredAt: "2024-05-22T10:00:00.000Z" }),
+      transaction({ id: "unknown-2", accountId: null, bankId: null, balanceAfterRial: 76881234, occurredAt: "2024-05-23T10:00:00.000Z" }),
+    ]);
+    const fold = balanceByDay(input);
+    expect(summarizeBalances(input).accounts).toEqual(fold.accounts);
+    expect(summarizeBalances(input).totalRial).toBe(fold.totalRial);
+    expect(balanceTimeline(input).at(-1)?.totalRial).toBe(fold.totalRial);
   });
 
   it("formats compact toman amounts with Persian units", () => {

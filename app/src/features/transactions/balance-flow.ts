@@ -1,6 +1,8 @@
-import type { Transaction, TransactionKind } from "@shared/contracts/transaction";
+import type { Transaction } from "@shared/contracts/transaction";
+import { transactionDirection } from "@shared/contracts/transaction";
+import { rialToToman } from "@shared/money";
 import { gregorianToJalali } from "@shared/parsing/jalali";
-import { accountKey, withLegacyBalances } from "@shared/parsing/balance";
+import { balanceTimeline, withLegacyBalances } from "@shared/parsing/balance";
 
 export type BalanceFlowPoint = {
   date: string;
@@ -9,45 +11,27 @@ export type BalanceFlowPoint = {
   cumulativeRial: number;
 };
 
-const positiveKinds: TransactionKind[] = ["income", "refund", "transfer_in"];
-const negativeKinds: TransactionKind[] = ["expense", "fee", "transfer_out", "cash_withdrawal"];
-
 function dayParts(date: string) {
   const tehran = new Date(new Date(date).getTime() + 3.5 * 60 * 60 * 1000);
   return gregorianToJalali(tehran.getUTCFullYear(), tehran.getUTCMonth() + 1, tehran.getUTCDate());
 }
 
+const monthNames = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+
+function dayLabel(date: string) {
+  const [, month, day] = date.split("/").map(Number);
+  return `${new Intl.NumberFormat("fa-IR").format(day)} ${monthNames[month - 1]}`;
+}
+
 export function buildBalanceFlow(transactions: Transaction[]): BalanceFlowPoint[] {
-  // Same account identity and balance recovery as the chat balance summary
-  // (shared/parsing/balance.ts), so the chart and the model can never
-  // disagree: one "unknown" bucket for unidentified accounts, and stored-null
-  // balances recovered by re-parsing the original SMS.
-  const recovered = withLegacyBalances(transactions);
-  // Per Jalali day, per account: keep the balance of the day's LATEST
-  // transaction (the closing balance). Input order must not matter — the API
-  // returns transactions newest-first.
-  const byDay = new Map<string, Map<string, { occurredAt: string; balanceRial: number }>>();
-  for (const item of recovered) {
-    if (item.balanceAfterRial == null) continue;
-    const parts = dayParts(item.occurredAt);
-    const date = `${parts.jy}/${String(parts.jm).padStart(2, "0")}/${String(parts.jd).padStart(2, "0")}`;
-    const account = accountKey(item);
-    const accounts = byDay.get(date) ?? new Map<string, { occurredAt: string; balanceRial: number }>();
-    const current = accounts.get(account);
-    if (!current || item.occurredAt >= current.occurredAt) accounts.set(account, { occurredAt: item.occurredAt, balanceRial: item.balanceAfterRial });
-    byDay.set(date, accounts);
-  }
-  const balances = new Map<string, number>();
+  // The day-closing fold lives in shared/parsing/balance.ts (balanceByDay), the
+  // same fold the chat balance summary reads, so the chart's final point and the
+  // model's total can never disagree.
   let previousTotal: number | null = null;
-  return [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, accounts]) => {
-    for (const [account, { balanceRial }] of accounts) balances.set(account, balanceRial);
-    const cumulativeRial = [...balances.values()].reduce((sum, amount) => sum + amount, 0);
-    const netRial = previousTotal == null ? 0 : cumulativeRial - previousTotal;
-    previousTotal = cumulativeRial;
-    const [, month, day] = date.split("/").map(Number);
-    const months = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-    const label = `${new Intl.NumberFormat("fa-IR").format(day)} ${months[month - 1]}`;
-    return { date, label, netRial, cumulativeRial };
+  return balanceTimeline(withLegacyBalances(transactions)).map((point) => {
+    const netRial = previousTotal == null ? 0 : point.totalRial - previousTotal;
+    previousTotal = point.totalRial;
+    return { date: point.date, label: dayLabel(point.date), netRial, cumulativeRial: point.totalRial };
   });
 }
 
@@ -58,14 +42,15 @@ export function monthlyTotals(transactions: Transaction[], now = new Date()) {
   for (const item of transactions) {
     const parts = dayParts(item.occurredAt);
     if (parts.jy !== nowParts.jy || parts.jm !== nowParts.jm) continue;
-    if (positiveKinds.includes(item.kind)) incomeRial += item.amountRial;
-    else if (negativeKinds.includes(item.kind)) expenseRial += item.amountRial;
+    const direction = transactionDirection(item.kind);
+    if (direction === "in") incomeRial += item.amountRial;
+    else if (direction === "out") expenseRial += item.amountRial;
   }
   return { incomeRial, expenseRial, netRial: incomeRial - expenseRial };
 }
 
 export function formatCompactToman(amountRial: number) {
-  const amount = amountRial / 10;
+  const amount = rialToToman(amountRial);
   const absolute = Math.abs(amount);
   const unit = absolute >= 1_000_000_000 ? [1_000_000_000, "میلیارد"] : absolute >= 1_000_000 ? [1_000_000, "میلیون"] : absolute >= 1_000 ? [1_000, "هزار"] : [1, ""];
   const value = amount / Number(unit[0]);
@@ -77,7 +62,7 @@ export function formatCompactToman(amountRial: number) {
 // actual cumulative balance (up to one decimal, since Rial/10 can be .x), never
 // a rounded compact figure that hides the real amount.
 export function formatExactToman(amountRial: number) {
-  const amount = amountRial / 10;
+  const amount = rialToToman(amountRial);
   const formatted = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 }).format(Math.abs(amount));
   return `${amount < 0 ? "−" : ""}${formatted} تومان`;
 }
@@ -85,7 +70,7 @@ export function formatExactToman(amountRial: number) {
 // Short form for chart axis ticks: no "تومان" suffix, so the Y axis stays
 // narrow enough not to clip (desktop) or eat chart width (mobile).
 export function formatAxisToman(amountRial: number) {
-  const amount = amountRial / 10;
+  const amount = rialToToman(amountRial);
   const absolute = Math.abs(amount);
   const sign = amount < 0 ? "−" : "";
   const formatter = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 });

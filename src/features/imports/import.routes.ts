@@ -1,9 +1,11 @@
-import type { Database } from "../../infrastructure/db/client";
 import { json } from "../../shared/http";
+import type { TransactionStorage } from "../transactions/transaction.storage";
 import { importClipboard } from "./import.service";
 
-export async function importRoutes(request: Request, path: string, db: Database) {
-  if (path !== "/api/imports/clipboard" || request.method !== "POST") return null;
-  const result = await importClipboard(db, await request.json());
-  return json(result, { status: result.status === "draft_created" ? 201 : 200 });
+export function createImportRoutes(storage: TransactionStorage) {
+  return async function importRoutes(request: Request, path: string): Promise<Response | null> {
+    if (path !== "/api/imports/clipboard" || request.method !== "POST") return null;
+    const result = await importClipboard(storage, await request.json());
+    return json(result, { status: result.status === "draft_created" ? 201 : 200 });
+  };
 }
