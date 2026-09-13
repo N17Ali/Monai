@@ -76,8 +76,19 @@ describe("chat system prompt", () => {
     ]);
     const prompt = buildSystemPrompt([], balances);
     expect(prompt).toContain("accountBalances");
-    expect(prompt).toContain('"totalRial":900000');
+    expect(prompt).toContain('"totalToman":90000');
     expect(prompt).toContain("Toman");
+  });
+
+  it("sends transaction amounts and balances to the model in Toman", () => {
+    const prompt = buildSystemPrompt(
+      [makeTransaction({ amountRial: 418_000 })],
+      summarizeBalances([makeTransaction({ bankId: "blu", balanceAfterRial: 900_000 })]),
+    );
+    expect(prompt).toContain('"amountToman":41800');
+    expect(prompt).toContain('"balanceToman":90000');
+    expect(prompt).not.toContain("amountRial");
+    expect(prompt).not.toContain("balanceRial");
   });
 });
 
@@ -92,7 +103,7 @@ describe("chat date localization", () => {
     const balances = summarizeBalances([makeTransaction({ bankId: "blu", balanceAfterRial: 900_000, occurredAt: "2026-09-03T22:22:00.000Z" })]);
     const prompt = buildSystemPrompt([], balances);
     expect(prompt).toContain("1405/06/13 01:52");
-    expect(prompt).toContain('"totalRial":900000');
+    expect(prompt).toContain('"totalToman":90000');
     expect(prompt).not.toContain("2026-09-03T22:22:00.000Z");
   });
 
