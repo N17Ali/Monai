@@ -6,6 +6,8 @@ import { kindLabels, transactionDirection, type Transaction } from "@shared/cont
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatJalali, formatToman } from "@/lib/utils";
+import { tehranJalaliDay } from "@shared/parsing/tehran-day";
+import { jalaliToGregorian } from "@shared/parsing/jalali";
 import { transactionsInfiniteQuery } from "./api";
 
 function direction(item: Transaction) {
@@ -16,12 +18,14 @@ function direction(item: Transaction) {
 }
 
 function groupLabel(date: string) {
-  const day = new Date(date);
-  const now = new Date();
-  const difference = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(day.getFullYear(), day.getMonth(), day.getDate())) / 86_400_000);
+  const day = tehranJalaliDay(date);
+  const today = tehranJalaliDay(new Date().toISOString());
+  const dayGregorian = jalaliToGregorian(day.jy, day.jm, day.jd);
+  const todayGregorian = jalaliToGregorian(today.jy, today.jm, today.jd);
+  const difference = Math.floor((Date.UTC(todayGregorian.gy, todayGregorian.gm - 1, todayGregorian.gd) - Date.UTC(dayGregorian.gy, dayGregorian.gm - 1, dayGregorian.gd)) / 86_400_000);
   if (difference === 0) return "امروز";
   if (difference === 1) return "دیروز";
-  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(day);
+  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(Date.UTC(dayGregorian.gy, dayGregorian.gm - 1, dayGregorian.gd)));
 }
 
 export function TransactionsView({ onImport, onManual }: { onImport?: () => void; onManual?: () => void } = {}) {

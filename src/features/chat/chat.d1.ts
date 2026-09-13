@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { UIMessage } from "ai";
 import type { Database } from "../../infrastructure/db/client";
 import { chatMessages, conversations } from "../../infrastructure/db/schema";
-import type { ChatStorage } from "./chat.storage";
+import { chatWindowPlan, type ChatStorage } from "./chat.storage";
 
 // D1 allows at most 100 bound parameters per statement. Each chat-message
 // insert binds 6 values per row (id, user_id, conversation_id, role, parts,
@@ -33,12 +33,10 @@ export function createD1ChatStorage(db: Database, userId: string): ChatStorage {
       ).map(toMessage),
     saveMessages: async (conversationId, messages, window) => {
       if (messages.length === 0) return;
-      const recent = messages.slice(-window);
-      const storedIds = new Set(
-        (await db.select({ id: chatMessages.id }).from(chatMessages).where(and(eq(chatMessages.userId, userId), eq(chatMessages.conversationId, conversationId)))).map((row) => row.id),
-      );
-      const rows = recent
-        .filter((message) => !storedIds.has(message.id))
+      const storedIds = (await db.select({ id: chatMessages.id }).from(chatMessages).where(and(eq(chatMessages.userId, userId), eq(chatMessages.conversationId, conversationId)))).map((row) => row.id);
+      const plan = chatWindowPlan(storedIds, messages, window);
+      const rows = plan.recent
+        .filter((message) => !plan.storedIds.has(message.id))
         .map((message) => ({
           id: message.id,
           userId,
@@ -57,12 +55,10 @@ export function createD1ChatStorage(db: Database, userId: string): ChatStorage {
         ) as unknown as Parameters<typeof db.batch>[0];
         await db.batch(insertStatements);
       }
-      const keepIds = new Set(recent.map((message) => message.id));
-      const staleIds = [...storedIds].filter((id) => !keepIds.has(id));
-      for (let start = 0; start < staleIds.length; start += MAX_IDS_PER_DELETE) {
+      for (let start = 0; start < plan.staleIds.length; start += MAX_IDS_PER_DELETE) {
         await db
           .delete(chatMessages)
-          .where(and(eq(chatMessages.userId, userId), eq(chatMessages.conversationId, conversationId), inArray(chatMessages.id, staleIds.slice(start, start + MAX_IDS_PER_DELETE))));
+          .where(and(eq(chatMessages.userId, userId), eq(chatMessages.conversationId, conversationId), inArray(chatMessages.id, plan.staleIds.slice(start, start + MAX_IDS_PER_DELETE))));
       }
     },
     listConversations: async () => {

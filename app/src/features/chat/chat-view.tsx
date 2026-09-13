@@ -2,7 +2,6 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Cancel01Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AI_PUBLIC_ERROR, CHAT_HISTORY_LIMIT } from "@shared/contracts/ai";
 import { Conversation, ConversationContent, ConversationEmptyState } from "@/components/ai-elements/conversation";
@@ -13,7 +12,7 @@ import { ThinkingDots } from "@/components/ai-elements/thinking";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
-import { chatHistoryQuery, chatKeys, conversationsQuery, createConversation, removeConversation } from "./api";
+import { useConversationTabs } from "./conversation-tabs";
 
 function textParts(message: UIMessage) {
   return message.parts.filter((part): part is { type: "text"; text: string } => part.type === "text");
@@ -159,36 +158,7 @@ function conversationTitle(number: number) {
 }
 
 export function ChatView() {
-  const queryClient = useQueryClient();
-  const [storedId, setStoredId] = useState(() => localStorage.getItem("monai-active-chat"));
-  useEffect(() => { localStorage.removeItem("monai-chat-sessions"); }, []);
-  const conversationsResult = useQuery(conversationsQuery);
-  const conversations = conversationsResult.data?.conversations ?? [];
-  const activeId = conversations.some((conversation) => conversation.id === storedId) ? storedId : conversations[0]?.id;
-  useEffect(() => { if (activeId) localStorage.setItem("monai-active-chat", activeId); }, [activeId]);
-  const history = useQuery({ ...chatHistoryQuery(activeId ?? "conversation-1"), enabled: activeId != null });
-  const createMutation = useMutation({
-    mutationFn: createConversation,
-    onSuccess: async (conversation) => {
-      setStoredId(conversation.id);
-      await queryClient.invalidateQueries({ queryKey: chatKeys.all });
-    },
-  });
-  const closeMutation = useMutation({
-    mutationFn: removeConversation,
-    onMutate: (id) => {
-      queryClient.removeQueries({ queryKey: chatKeys.history(id) });
-      queryClient.setQueryData<{ conversations: { id: string; number: number }[] }>(chatKeys.conversations, (current) =>
-        current ? { conversations: current.conversations.filter((conversation) => conversation.id !== id) } : current,
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: chatKeys.all });
-    },
-    onError: () => {
-      void queryClient.invalidateQueries({ queryKey: chatKeys.conversations });
-    },
-  });
+  const { conversationsResult, conversations, activeId, history, closeConversation, newConversation, selectConversation, creating } = useConversationTabs();
 
   if (conversationsResult.isPending) {
     return (
@@ -206,19 +176,7 @@ export function ChatView() {
     );
   }
 
-  function closeConversation(id: string) {
-    const index = conversations.findIndex((conversation) => conversation.id === id);
-    const fallback = conversations[index - 1] ?? conversations[index + 1];
-    setStoredId(fallback?.id ?? null);
-    closeMutation.mutate(id);
-  }
-
-  function newConversation() {
-    if (createMutation.isPending) return;
-    createMutation.mutate();
-  }
-
-  return <div className="flex h-[calc(100dvh-12rem)] flex-col gap-3 lg:h-[calc(100dvh-10rem)]"><div aria-label="فهرست گفت‌وگوها" className="flex shrink-0 gap-2 overflow-x-auto pb-1">{conversations.map((conversation) => { const active = conversation.id === activeId; const title = conversationTitle(conversation.number); return <div className={`flex min-h-11 shrink-0 items-center rounded-md ${active ? "bg-secondary text-secondary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`} key={conversation.id}><Button aria-current={active ? "page" : undefined} className="min-h-11 hover:bg-transparent" onClick={() => setStoredId(conversation.id)} size="sm" variant="ghost">{title}</Button><Button aria-label={`بستن ${title}`} className="size-11 hover:bg-transparent" onClick={() => closeConversation(conversation.id)} size="icon-sm" variant="ghost"><HugeiconsIcon icon={Cancel01Icon} size={14} /></Button></div>; })}<Button className="min-h-11 shrink-0" disabled={createMutation.isPending} onClick={newConversation} size="sm" variant="outline"><HugeiconsIcon icon={PlusSignIcon} size={16} />گفت‌وگوی جدید</Button></div>{activeId == null || history.isPending ? <ChatLoading /> : history.isError ? <div className="grid min-h-0 flex-1 place-content-center justify-items-center gap-3"><p className="text-sm text-muted-foreground">پیام‌ها بارگذاری نشد.</p><Button onClick={() => void history.refetch()} variant="secondary">تلاش دوباره</Button></div> : <ChatConversation conversationId={activeId} initialMessages={history.data?.messages ?? []} key={activeId} onNewConversation={newConversation} />}</div>;
+  return <div className="flex h-[calc(100dvh-12rem)] flex-col gap-3 lg:h-[calc(100dvh-10rem)]"><div aria-label="فهرست گفت‌وگوها" className="flex shrink-0 gap-2 overflow-x-auto pb-1">{conversations.map((conversation) => { const active = conversation.id === activeId; const title = conversationTitle(conversation.number); return <div className={`flex min-h-11 shrink-0 items-center rounded-md ${active ? "bg-secondary text-secondary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`} key={conversation.id}><Button aria-current={active ? "page" : undefined} className="min-h-11 hover:bg-transparent" onClick={() => selectConversation(conversation.id)} size="sm" variant="ghost">{title}</Button><Button aria-label={`بستن ${title}`} className="size-11 hover:bg-transparent" onClick={() => closeConversation(conversation.id)} size="icon-sm" variant="ghost"><HugeiconsIcon icon={Cancel01Icon} size={14} /></Button></div>; })}<Button className="min-h-11 shrink-0" disabled={creating} onClick={newConversation} size="sm" variant="outline"><HugeiconsIcon icon={PlusSignIcon} size={16} />گفت‌وگوی جدید</Button></div>{activeId == null || history.isPending ? <ChatLoading /> : history.isError ? <div className="grid min-h-0 flex-1 place-content-center justify-items-center gap-3"><p className="text-sm text-muted-foreground">پیام‌ها بارگذاری نشد.</p><Button onClick={() => void history.refetch()} variant="secondary">تلاش دوباره</Button></div> : <ChatConversation conversationId={activeId} initialMessages={history.data?.messages ?? []} key={activeId} onNewConversation={newConversation} />}</div>;
 }
 
 function ChatLoading() {

@@ -17,12 +17,17 @@ export interface ChatStorage {
 // reaches the same postcondition with SQL, so the storage conformance test
 // holds both adapters to this shape.
 export function nextChatWindow(stored: UIMessage[], incoming: UIMessage[], window: number) {
+  const plan = chatWindowPlan(stored.map((message) => message.id), incoming, window);
+  return {
+    kept: stored.filter((message) => plan.keepIds.has(message.id)),
+    added: plan.recent.filter((message) => !plan.storedIds.has(message.id)),
+    staleIds: plan.staleIds,
+  };
+}
+
+export function chatWindowPlan(storedIds: string[], incoming: UIMessage[], window: number) {
   const recent = incoming.slice(-window);
   const keepIds = new Set(recent.map((message) => message.id));
-  const storedIds = new Set(stored.map((message) => message.id));
-  return {
-    kept: stored.filter((message) => keepIds.has(message.id)),
-    added: recent.filter((message) => !storedIds.has(message.id)),
-    staleIds: stored.filter((message) => !keepIds.has(message.id)).map((message) => message.id),
-  };
+  const storedIdSet = new Set(storedIds);
+  return { recent, keepIds, storedIds: storedIdSet, staleIds: storedIds.filter((id) => !keepIds.has(id)) };
 }

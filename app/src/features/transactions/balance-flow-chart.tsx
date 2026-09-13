@@ -1,5 +1,6 @@
 import { Area, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatAxisToman, formatCompactToman, formatExactToman, type BalanceFlowPoint } from "./balance-flow";
+import { formatAxisToman, formatCompactToman, formatExactToman } from "./balance-format";
+import type { BalanceFlowPoint } from "./balance-flow";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 function TooltipContent({ active, payload }: { active?: boolean; payload?: Array<{ payload: BalanceFlowPoint }> }) {
