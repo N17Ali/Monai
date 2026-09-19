@@ -54,9 +54,9 @@ function readAccountId(normalized: string): string | null {
   if (transferSource?.[1]) return transferSource[1];
   const labeled = normalized.match(/حساب\s*[:：]?\s*([0-9]{6,})/);
   if (labeled?.[1]) return labeled[1];
-  const bareLine = normalized.match(/(?:^|\n)([0-9]{10,19})(?:\n|$)/);
+  const bareLine = normalized.match(/(?:^|[\r\n])([0-9]{10,19})(?=[\r\n]|$)/);
   if (bareLine?.[1]) return bareLine[1];
-  const dottedLine = normalized.match(/(?:^|\n)([0-9]{1,6}(?:\.[0-9]{1,9}){1,4})(?:\n|$)/);
+  const dottedLine = normalized.match(/(?:^|[\r\n])([0-9]{1,6}(?:\.[0-9]{1,9}){1,4})(?=[\r\n]|$)/);
   const dotted = dottedLine?.[1];
   if (dotted && dotted.replace(/\./g, "").length >= 10) return dotted;
   return null;

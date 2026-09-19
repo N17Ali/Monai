@@ -96,6 +96,17 @@ describe("user-reported September 2026 messages", () => {
     }
   });
 
+  it("detects a dotted Resalat account number in a CRLF-delimited message", () => {
+    expect(parseSms("10.6190552.1\r\n+35,000,000 \r\n06/27_14:59\r\nمانده: 111,881,234")).toMatchObject({
+      amountRial: 35000000,
+      kind: "income",
+      accountId: "10.6190552.1",
+      bankId: "resalat",
+      sourceDateText: "06/27_14:59",
+      balanceAfterRial: 111881234,
+    });
+  });
+
   it("detects the Resalat bank by name", () => {
     expect(parseSms("بانک رسالت واریز 100,000 ریال به حساب شما نشست.").bankId).toBe("resalat");
   });

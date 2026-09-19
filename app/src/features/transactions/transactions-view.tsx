@@ -12,8 +12,9 @@ import { transactionsInfiniteQuery } from "./api";
 
 function direction(item: Transaction) {
   const flow = transactionDirection(item.kind);
-  if (flow === "in") return { sign: "+", color: "text-income", icon: ArrowUp01Icon };
+  if (flow === "in") return { sign: "+", color: "text-income", icon: item.kind === "transfer_in" ? RepeatIcon : ArrowUp01Icon };
   if (flow === "out") return { sign: "−", color: "text-expense", icon: ArrowDown01Icon };
+  if (item.kind === "transfer_out") return { sign: "", color: "text-expense", icon: RepeatIcon };
   return { sign: "", color: "text-muted-foreground", icon: RepeatIcon };
 }
 
