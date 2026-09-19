@@ -1,6 +1,7 @@
 import type { Transaction } from "@shared/contracts/transaction";
 import { transactionDirection } from "@shared/contracts/transaction";
 import { balanceTimeline, withLegacyBalances } from "@shared/parsing/balance";
+import { jalaliMonthName } from "@shared/parsing/jalali";
 import { tehranJalaliDay } from "@shared/parsing/tehran-day";
 export { formatAxisToman, formatCompactToman, formatExactToman } from "./balance-format";
 
@@ -11,11 +12,9 @@ export type BalanceFlowPoint = {
   cumulativeRial: number;
 };
 
-const monthNames = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-
 function dayLabel(date: string) {
   const [, month, day] = date.split("/").map(Number);
-  return `${new Intl.NumberFormat("fa-IR").format(day)} ${monthNames[month - 1]}`;
+  return `${new Intl.NumberFormat("fa-IR").format(day)} ${jalaliMonthName(month)}`;
 }
 
 export function buildBalanceFlow(transactions: Transaction[]): BalanceFlowPoint[] {

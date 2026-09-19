@@ -1,9 +1,10 @@
-import { convertToModelMessages, generateId, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, generateId, stepCountIs, streamText, type UIMessage } from "ai";
 import { chatRequestSchema, AI_PUBLIC_ERROR } from "../../../shared/contracts/ai";
 import type { Transaction } from "../../../shared/contracts/transaction";
 import { summarizeBalances, withLegacyBalances } from "../../../shared/parsing/balance";
 import type { ChatStorage } from "./chat.storage";
 import { buildSystemPrompt } from "./system-prompt";
+import { createListNotesTool, createSummarizeTool } from "./summary";
 
 export type ChatModelFactory = (apiKey: string) => Parameters<typeof streamText>[0]["model"];
 
@@ -42,6 +43,15 @@ export function createChatRoutes(options: { chat: ChatStorage; config: ChatConfi
       model: config.createChatModel(config.aiApiKey),
       system: buildSystemPrompt(transactions, balances),
       messages: await convertToModelMessages(messages as UIMessage[]),
+      // The tools close over the full verified list, so every sum the model
+      // reports is computed in code over all transactions — the 100-item
+      // context sample is for itemization only. Discovery → summarize → answer
+      // fits well inside five steps, with room for one retry on unknown notes.
+      tools: {
+        summarize_transactions: createSummarizeTool(transactions),
+        list_notes: createListNotesTool(transactions),
+      },
+      stopWhen: stepCountIs(5),
     });
     return result.toUIMessageStreamResponse({
       generateMessageId: generateId,

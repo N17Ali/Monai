@@ -101,3 +101,50 @@ export function jalaliToIso(jy: number, jm: number, jd: number, hour = 0, minute
   const { gy, gm, gd } = jalaliToGregorian(jy, jm, jd);
   return new Date(Date.UTC(gy, gm - 1, gd, hour, minute) - tehranOffsetMs).toISOString();
 }
+
+export const JALALI_MONTH_NAMES = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"] as const;
+
+export function jalaliMonthName(jm: number) {
+  return JALALI_MONTH_NAMES[jm - 1];
+}
+
+const JALALI_WEEKDAY_NAMES = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+
+function jalaliDayShift(date: JalaliDate, days: number): JalaliDate {
+  const { gy, gm, gd } = jalaliToGregorian(date.jy, date.jm, date.jd);
+  const shifted = new Date(Date.UTC(gy, gm - 1, gd) + days * 86400000);
+  return gregorianToJalali(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, shifted.getUTCDate());
+}
+
+// The Jalali week runs Saturday to Friday. A date's weekday index is 0 for
+// شنبه … 6 for جمعه, so shifting back by that many days lands on the week's
+// first day.
+function jalaliWeekdayIndex(date: JalaliDate) {
+  const { gy, gm, gd } = jalaliToGregorian(date.jy, date.jm, date.jd);
+  return (new Date(Date.UTC(gy, gm - 1, gd)).getUTCDay() + 1) % 7;
+}
+
+export function jalaliWeekStart(jy: number, jm: number, jd: number): JalaliDate {
+  const date = { jy, jm, jd };
+  return jalaliDayShift(date, -jalaliWeekdayIndex(date));
+}
+
+export function jalaliWeekEnd(jy: number, jm: number, jd: number): JalaliDate {
+  return jalaliDayShift(jalaliWeekStart(jy, jm, jd), 6);
+}
+
+export function jalaliWeekdayName(jy: number, jm: number, jd: number) {
+  return JALALI_WEEKDAY_NAMES[jalaliWeekdayIndex({ jy, jm, jd })];
+}
+
+export function formatJalaliDay(date: JalaliDate) {
+  return `${date.jy}/${pad(date.jm)}/${pad(date.jd)}`;
+}
+
+export function parseJalaliDay(text: string): JalaliDate | null {
+  const match = text.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  if (!match) return null;
+  const [jy, jm, jd] = match.slice(1).map(Number);
+  if (jm < 1 || jm > 12 || jd < 1 || jd > 31) return null;
+  return { jy, jm, jd };
+}
