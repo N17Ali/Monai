@@ -14,6 +14,11 @@ export const transactionKindSchema = z.enum([
 export const transactionStatusSchema = z.enum(["needs_review", "verified", "rejected"]);
 export const transactionSourceSchema = z.enum(["clipboard", "ios_shortcut", "manual"]);
 
+// Keep every user-editable transaction kind in one place so API validation and
+// all transaction forms accept the same set of values.
+export const editableTransactionKinds = ["expense", "income", "transfer_out", "transfer_in", "refund", "fee", "cash_withdrawal"] as const;
+export type EditableTransactionKind = (typeof editableTransactionKinds)[number];
+
 export const transactionSchema = z.object({
   id: z.string(),
   source: transactionSourceSchema,
@@ -37,28 +42,31 @@ export const clipboardImportSchema = z.object({
 });
 
 export const manualTransactionSchema = z.object({
-  kind: transactionKindSchema.exclude(["unknown"]),
+  kind: z.enum(editableTransactionKinds),
   amountToman: z.number().positive("مبلغ باید بیشتر از صفر باشد"),
   occurredAt: z.string().min(1, "تاریخ را وارد کنید"),
   note: z.string().trim().max(300),
 });
 
 export const enrichmentUpdateSchema = z.object({
-  kind: transactionKindSchema.exclude(["unknown"]),
+  kind: z.enum(editableTransactionKinds),
   amountToman: z.number().positive("مبلغ را مشخص کنید"),
   note: z.string().trim().max(300),
   occurredAt: z.iso.datetime().optional(),
+});
+
+export const verifiedTransactionUpdateSchema = z.object({
+  kind: z.enum(editableTransactionKinds),
+  amountToman: z.number().positive("مبلغ را مشخص کنید"),
+  occurredAt: z.iso.datetime(),
+  note: z.string().trim().max(300),
 });
 
 export type Transaction = z.infer<typeof transactionSchema>;
 export type TransactionKind = z.infer<typeof transactionKindSchema>;
 export type ManualTransactionInput = z.infer<typeof manualTransactionSchema>;
 export type EnrichmentUpdateInput = z.infer<typeof enrichmentUpdateSchema>;
-
-// The kinds a user can pick in the manual and enrichment forms. Defined once so
-// both forms and their defaulting rule cannot drift apart.
-export const editableTransactionKinds = ["expense", "income", "transfer_out", "transfer_in"] as const;
-export type EditableTransactionKind = (typeof editableTransactionKinds)[number];
+export type VerifiedTransactionUpdateInput = z.infer<typeof verifiedTransactionUpdateSchema>;
 
 const incomingKinds: readonly TransactionKind[] = ["income", "refund", "transfer_in"];
 const outgoingKinds: readonly TransactionKind[] = ["expense", "fee", "cash_withdrawal"];

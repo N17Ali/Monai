@@ -82,4 +82,30 @@ describe("transaction storage conformance: memory", () => {
       { id: "m1", source: "manual", status: "verified", kind: "expense", amountRial: 100000, sourceDateText: null, bankId: null, originalMessage: null },
     ]);
   });
+
+  it("updates only a verified transaction", async () => {
+    const storage = createMemoryTransactionStorage("u1");
+    await storage.createVerified(manual("m1", "2024-05-01T10:00:00.000Z"));
+
+    expect(await storage.updateVerified("m1", { kind: "income", amountRial: 900000, userNote: "حقوق", occurredAt: "2024-05-02T10:00:00.000Z" })).toBe(true);
+    expect(await storage.listVerified()).toMatchObject([{ id: "m1", kind: "income", amountRial: 900000, userNote: "حقوق", occurredAt: "2024-05-02T10:00:00.000Z" }]);
+
+    await storage.createDraft(draft("d1"));
+    expect(await storage.updateVerified("d1", { kind: "income", amountRial: 900000, userNote: null, occurredAt: "2024-05-02T10:00:00.000Z" })).toBe(false);
+    expect(await storage.updateVerified("missing", { kind: "income", amountRial: 900000, userNote: null, occurredAt: "2024-05-02T10:00:00.000Z" })).toBe(false);
+  });
+
+  it("deletes verified transactions and releases draft fingerprints", async () => {
+    const storage = createMemoryTransactionStorage("u1");
+    await storage.createVerified(manual("m1", "2024-05-01T10:00:00.000Z"));
+    expect(await storage.deleteVerified("m1")).toBe(true);
+    expect(await storage.listVerified()).toEqual([]);
+    expect(await storage.deleteVerified("m1")).toBe(false);
+
+    await storage.createDraft(draft("d1", { fingerprint: "reusable" }));
+    expect(await storage.deleteVerified("d1")).toBe(false);
+    expect(await storage.verify("d1", { kind: "expense", amountRial: 100, userNote: null })).toBe(true);
+    expect(await storage.deleteVerified("d1")).toBe(true);
+    expect(await storage.createDraft(draft("d2", { fingerprint: "reusable" }))).toEqual({ status: "created", id: "d2" });
+  });
 });

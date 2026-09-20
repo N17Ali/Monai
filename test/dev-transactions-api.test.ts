@@ -102,4 +102,43 @@ describe("dev api transactions pagination", () => {
     await handle(fakeRequest("/api/transactions?limit=2&cursor=garbage", "GET"), badCursor.response);
     expect(badCursor.status()).toBe(400);
   });
+
+  it("updates and deletes a verified transaction", async () => {
+    const handle = await createHandler();
+    const seeded = await seedManual(handle, "2024-05-01T10:00:00.000Z");
+
+    const update = fakeResponse();
+    await handle(fakeRequest(`/api/transactions/${seeded.id}`, "PATCH", {
+      kind: "income",
+      amountToman: 2500,
+      occurredAt: "2024-05-02T10:00:00.000Z",
+      note: "حقوق",
+    }), update.response);
+    expect(update.status()).toBe(200);
+    expect(JSON.parse(update.body())).toEqual({ status: "updated", id: seeded.id });
+
+    const listed = fakeResponse();
+    await handle(fakeRequest("/api/transactions", "GET"), listed.response);
+    expect(JSON.parse(listed.body()).transactions).toMatchObject([{ id: seeded.id, kind: "income", amountRial: 25000, userNote: "حقوق", occurredAt: "2024-05-02T10:00:00.000Z" }]);
+
+    const deletion = fakeResponse();
+    await handle(fakeRequest(`/api/transactions/${seeded.id}`, "DELETE"), deletion.response);
+    expect(deletion.status()).toBe(200);
+    expect(JSON.parse(deletion.body())).toEqual({ status: "deleted", id: seeded.id });
+
+    const missing = fakeResponse();
+    await handle(fakeRequest(`/api/transactions/${seeded.id}`, "DELETE"), missing.response);
+    expect(missing.status()).toBe(404);
+  });
+
+  it("validates transaction updates and returns not found for unknown IDs", async () => {
+    const handle = await createHandler();
+    const invalid = fakeResponse();
+    await handle(fakeRequest("/api/transactions/missing", "PATCH", { kind: "expense", amountToman: 0, occurredAt: "bad", note: "" }), invalid.response);
+    expect(invalid.status()).toBe(400);
+
+    const missing = fakeResponse();
+    await handle(fakeRequest("/api/transactions/missing", "PATCH", { kind: "expense", amountToman: 1000, occurredAt: "2024-05-01T10:00:00.000Z", note: "" }), missing.response);
+    expect(missing.status()).toBe(404);
+  });
 });

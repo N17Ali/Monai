@@ -49,6 +49,13 @@ export type TransactionCorrection = {
   occurredAt?: string;
 };
 
+export type VerifiedTransactionUpdate = {
+  kind: TransactionKind;
+  amountRial: number;
+  userNote: string | null;
+  occurredAt: string;
+};
+
 export type VerifiedPage = { limit: number; after?: { occurredAt: string; id: string } };
 
 export type DraftWriteResult = { status: "created"; id: string } | { status: "duplicate" };
@@ -66,4 +73,6 @@ export interface TransactionStorage {
   listVerifiedPage(page: VerifiedPage): Promise<Transaction[]>;
   verify(id: string, correction: TransactionCorrection): Promise<boolean>;
   reject(id: string): Promise<boolean>;
+  updateVerified(id: string, correction: VerifiedTransactionUpdate): Promise<boolean>;
+  deleteVerified(id: string): Promise<boolean>;
 }

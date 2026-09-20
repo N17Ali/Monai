@@ -1,6 +1,6 @@
-import { manualTransactionSchema } from "../../../shared/contracts/transaction";
+import { manualTransactionSchema, verifiedTransactionUpdateSchema } from "../../../shared/contracts/transaction";
 import { tomanToRial } from "../../../shared/money";
-import { json } from "../../shared/http";
+import { json, parseJson } from "../../shared/http";
 import type { TransactionStorage } from "./transaction.storage";
 
 const MAX_PAGE_SIZE = 100;
@@ -36,6 +36,23 @@ export function createTransactionRoutes(storage: TransactionStorage) {
       const id = crypto.randomUUID();
       await storage.createVerified({ id, source: "manual", kind: input.kind, amountRial: tomanToRial(input.amountToman), occurredAt: now, userNote: input.note || null, createdAt: now, verifiedAt: now });
       return json({ status: "verified", id }, { status: 201 });
+    }
+    const transactionMatch = path.match(/^\/api\/transactions\/([^/]+)$/);
+    if (transactionMatch && request.method === "PATCH") {
+      const id = decodeURIComponent(transactionMatch[1]);
+      const input = await parseJson(request, verifiedTransactionUpdateSchema);
+      const updated = await storage.updateVerified(id, {
+        kind: input.kind,
+        amountRial: tomanToRial(input.amountToman),
+        userNote: input.note || null,
+        occurredAt: new Date(input.occurredAt).toISOString(),
+      });
+      return updated ? json({ status: "updated", id }) : json({ error: "تراکنش پیدا نشد" }, { status: 404 });
+    }
+    if (transactionMatch && request.method === "DELETE") {
+      const id = decodeURIComponent(transactionMatch[1]);
+      const deleted = await storage.deleteVerified(id);
+      return deleted ? json({ status: "deleted", id }) : json({ error: "تراکنش پیدا نشد" }, { status: 404 });
     }
     return null;
   };

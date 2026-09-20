@@ -127,5 +127,20 @@ export function createD1TransactionStorage(db: Database, userId: string): Transa
         .returning({ id: transactions.id });
       return rows.length > 0;
     },
+    updateVerified: async (id, correction) => {
+      const rows = await db
+        .update(transactions)
+        .set({ kind: correction.kind, amountRial: correction.amountRial, userNote: correction.userNote, occurredAt: correction.occurredAt })
+        .where(and(eq(transactions.id, id), eq(transactions.userId, userId), eq(transactions.status, "verified")))
+        .returning({ id: transactions.id });
+      return rows.length > 0;
+    },
+    deleteVerified: async (id) => {
+      const rows = await db
+        .delete(transactions)
+        .where(and(eq(transactions.id, id), eq(transactions.userId, userId), eq(transactions.status, "verified")))
+        .returning({ id: transactions.id });
+      return rows.length > 0;
+    },
   };
 }

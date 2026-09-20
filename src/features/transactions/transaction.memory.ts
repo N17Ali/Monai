@@ -99,5 +99,18 @@ export function createMemoryTransactionStorage(_userId: string, seed: Transactio
       record.transaction = { ...record.transaction, status: "rejected" };
       return true;
     },
+    updateVerified: async (id, correction) => {
+      const record = records.get(id);
+      if (!record || record.transaction.status !== "verified") return false;
+      record.transaction = { ...record.transaction, ...correction };
+      return true;
+    },
+    deleteVerified: async (id) => {
+      const record = records.get(id);
+      if (!record || record.transaction.status !== "verified") return false;
+      records.delete(id);
+      if (record.fingerprint != null && fingerprintIndex.get(record.fingerprint) === id) fingerprintIndex.delete(record.fingerprint);
+      return true;
+    },
   };
 }
