@@ -18,3 +18,7 @@ export function formatJalali(date: string) {
     timeZone: "Asia/Tehran",
   }).format(new Date(date));
 }
+
+export function toPersianDigits(value: string) {
+  return value.replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
+}

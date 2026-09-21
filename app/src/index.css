@@ -183,6 +183,10 @@ button:disabled { cursor: not-allowed; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .swipe-transaction-card {
+    transition-duration: 80ms;
+  }
+
   .chat-thinking .dot-elastic,
   .chat-thinking .dot-elastic::before,
   .chat-thinking .dot-elastic::after {

@@ -8,5 +8,5 @@ export function ManualForm({ onDone }: { onDone: () => void }) {
 }
 
 export function ManualTransactionDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (value: boolean) => void }) {
-  return <Drawer onOpenChange={onOpenChange} open={open} showSwipeHandle><DrawerContent><DrawerHeader className="text-start"><DrawerTitle>ثبت دستی تراکنش</DrawerTitle></DrawerHeader><div className="flex-1 overflow-y-auto overscroll-contain p-4"><ManualForm onDone={() => onOpenChange(false)} /></div></DrawerContent></Drawer>;
+  return <Drawer onOpenChange={onOpenChange} open={open} showSwipeHandle><DrawerContent className="[--drawer-content-height:calc(100dvh-1rem)] [--drawer-content-max-height:calc(100dvh-1rem)]"><DrawerHeader className="text-start"><DrawerTitle>ثبت دستی تراکنش</DrawerTitle></DrawerHeader><div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"><ManualForm onDone={() => onOpenChange(false)} /></div></DrawerContent></Drawer>;
 }

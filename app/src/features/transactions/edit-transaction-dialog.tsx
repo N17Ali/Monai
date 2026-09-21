@@ -19,12 +19,12 @@ function editDefaults(transaction: Transaction) {
 export function EditTransactionDialog({ transaction, open, onOpenChange }: { transaction: Transaction | null; open: boolean; onOpenChange: (value: boolean) => void }) {
   const mutation = useUpdateTransaction();
   return <Drawer open={open && transaction != null} onOpenChange={onOpenChange} showSwipeHandle>
-    <DrawerContent className="[--drawer-content-max-height:calc(100dvh-1rem)]">
+    <DrawerContent className="[--drawer-content-height:calc(100dvh-1rem)] [--drawer-content-max-height:calc(100dvh-1rem)] overflow-hidden">
       <DrawerHeader className="text-start">
         <DrawerTitle>ویرایش تراکنش</DrawerTitle>
         <DrawerDescription>اطلاعات تراکنش را اصلاح کن.</DrawerDescription>
       </DrawerHeader>
-      <div className="p-4">
+      <div className="min-h-0 flex-1 p-4">
         {transaction && <TransactionForm key={transaction.id} defaultValues={editDefaults(transaction)} resetKey={transaction.id} pending={mutation.isPending} submitLabel="ذخیره تغییرات" onSubmit={(values) => mutation.mutate({ id: transaction.id, ...values }, { onSuccess: () => onOpenChange(false) })} />}
       </div>
     </DrawerContent>

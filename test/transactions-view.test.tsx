@@ -72,8 +72,17 @@ describe("transactions view", () => {
     renderView();
     await waitFor(() => expect(screen.getByText("خرید فروشگاه افق")).toBeInTheDocument());
     expect(screen.getByText(/شماره حساب/)).toBeInTheDocument();
-    expect(screen.getByText("6037991122334455")).toBeInTheDocument();
+    const accountNumber = screen.getByText("۶۰۳۷۹۹۱۱۲۲۳۳۴۴۵۵");
+    expect(accountNumber).toBeInTheDocument();
+    expect(accountNumber.closest("p")).not.toHaveClass("truncate");
     expect(screen.getAllByText(/شماره حساب/)).toHaveLength(1);
+  });
+
+  it("shows the complete transaction date and time without truncating it", async () => {
+    state.pages = [{ transactions: [transaction({ id: "full-date", occurredAt: "2026-09-03T22:22:00.000Z" })], nextCursor: null }];
+    renderView();
+    const dateTime = await screen.findByText((text) => text.includes("شهریور") && text.includes("هزینه"));
+    expect(dateTime).not.toHaveClass("truncate");
   });
 
   it("omits the source label from cards regardless of bank detection", async () => {

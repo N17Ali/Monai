@@ -45,7 +45,7 @@ describe("enrichment view", () => {
   it("prefills the amount extracted from the SMS", async () => {
     renderEnrichmentView();
     await waitFor(() => expect(screen.getByRole("button", { name: "تأیید تراکنش" })).toBeInTheDocument());
-    expect((screen.getByLabelText("مبلغ به تومان") as HTMLInputElement).value).toBe("45000");
+    expect((screen.getByLabelText("مبلغ به تومان") as HTMLInputElement).value).toBe("45,000");
   });
 
   it("shows the extracted date so the user can verify it", async () => {
