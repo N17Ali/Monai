@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DatePicker } from "@jalali-js/react";
+import { Calendar, TimePicker } from "@jalali-js/react";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { kindLabels, type EditableTransactionKind } from "@shared/contracts/transaction";
@@ -19,6 +21,31 @@ function amountDigits(value: string) {
 }
 
 type PickedDateTime = { year: number; month: number; day: number; hour: number; minute: number };
+
+const persianNumber = new Intl.NumberFormat("fa-IR", { useGrouping: false });
+
+function DateTimePicker({ value, onChange }: { value: PickedDateTime; onChange: (value: PickedDateTime) => void }) {
+  const [open, setOpen] = useState(false);
+  const [portalHost, setPortalHost] = useState<Element | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const display = `${persianNumber.format(value.year)}/${persianNumber.format(value.month)}/${persianNumber.format(value.day)} ${persianNumber.format(value.hour).padStart(2, "۰")}:${persianNumber.format(value.minute).padStart(2, "۰")}`;
+
+  function show() {
+    setPortalHost(buttonRef.current?.closest('[data-slot="drawer-viewport"]') ?? document.body);
+    setOpen(true);
+  }
+
+  return <>
+    <button aria-expanded={open} aria-haspopup="dialog" className="w-full rounded-[var(--jalali-radius)] border border-border bg-surface px-3 py-2.5 text-start outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={show} ref={buttonRef} type="button">{display}</button>
+    {open && portalHost && createPortal(<div className="pointer-events-auto fixed inset-0 z-[70] grid place-items-center bg-black/30 p-4" onPointerDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+      <div aria-label="انتخاب تاریخ و ساعت" className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-2xl border border-border bg-surface p-4 shadow-xl" data-jalali-datepicker-root dir="rtl" role="dialog">
+        <Calendar locale="fa" onSelect={(date) => onChange({ ...value, year: date.year, month: date.month, day: date.day })} system="jalali" value={{ precision: "date", system: "jalali", year: value.year, month: value.month, day: value.day }} />
+        <TimePicker className="mt-4" locale="fa" minuteStep={1} onChange={(time) => onChange({ ...value, hour: time.hour, minute: time.minute })} value={{ hour: value.hour, minute: value.minute }} />
+        <Button className="mt-4 w-full" onClick={() => setOpen(false)} type="button">تأیید</Button>
+      </div>
+    </div>, portalHost)}
+  </>;
+}
 
 const formSchema = z.object({
   kind: z.enum(kinds),
@@ -77,7 +104,7 @@ export function TransactionForm({ defaultValues, resetKey, pending, submitLabel,
     {form.formState.errors.amountToman?.message && <p className="text-sm text-expense">{form.formState.errors.amountToman.message}</p>}
     <Controller name="occurredAt" control={form.control} render={({ field }) => <div>
       <span className="block text-sm font-medium">تاریخ و ساعت</span>
-      <DatePicker key={resetKey} className="mt-2" defaultDate={{ precision: "datetime", system: "jalali", year: field.value.year, month: field.value.month, day: field.value.day, hour: field.value.hour, minute: field.value.minute, second: 0, millisecond: 0 }} locale="fa" minuteStep={1} onChange={(_, date) => { if (date.precision === "datetime") field.onChange({ year: date.year, month: date.month, day: date.day, hour: date.hour, minute: date.minute }); }} precision="datetime" system="jalali" />
+      <div className="mt-2"><DateTimePicker key={resetKey} onChange={field.onChange} value={field.value} /></div>
     </div>} />
     {form.formState.errors.occurredAt?.message && <p className="text-sm text-expense">{form.formState.errors.occurredAt.message}</p>}
     <label className="block text-sm font-medium">توضیح
